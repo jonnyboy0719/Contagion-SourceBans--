@@ -1,0 +1,28 @@
+{
+	"english" : 
+	{
+		"SB_Formated_JoinBanned" : "You have been banned by this server, check %1 for more info",
+		"SB_Formated_JoinKick" : "{teal}%1{default} have been banned by this server.",
+		"SB_Formated_MuteGag" : "{teal}%1{default} has joined and has been {red}%2{default} automatically.",
+		"SB_Formated_MsgShort" : "{green}%1{default} have been %2",
+		"SB_Formated_Msg" : "{green}%1{default} have been %2 for %3",
+		"SB_Formated_Msg_Perma" : "{green}%1{default} have been {red}permanently{default} %2!",
+		"SB_Formated_Msg_Reason" : "Reason: {green}%1",
+		"SB_TargetNotFound" : "The {red}%1{default} is not a valid target!\nReason:\n",
+		"SB_TargetNotFound_Reason_1" : "\t- {red}EntIndex{default} is not valid.\n",
+		"SB_TargetNotFound_Reason_2" : "\t- {red}UserID{default} is not valid.\n",
+		"SB_TargetNotFound_Reason_3" : "\t- {red}Player Name{default}/{red}SteamID{default} is not valid.\n",
+		"SB_TargetSelf" : "You {red}cannot{default} target {cyan}yourself{default}!",
+		"SB_TargetAdmin" : "You {red}cannot{default} target an {yellow}admin{default}!",
+		"SB_Tag" : "[{green}SourceBans{default}]",
+		"SB_UnBanned" : "unbanned",
+		"SB_UnGagged" : "ungagged",
+		"SB_UnMuted" : "unmuted",
+		"SB_UnSilenced" : "unsilenced",
+		"SB_Banned" : "banned",
+		"SB_Kicked" : "kicked",
+		"SB_Gagged" : "gagged",
+		"SB_Muted" : "muted",
+		"SB_Silenced" : "silenced"
+	}
+}
