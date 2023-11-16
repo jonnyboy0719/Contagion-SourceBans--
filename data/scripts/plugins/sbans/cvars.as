@@ -26,7 +26,7 @@ void CreateConvars()
 	ConCommand::Create( "sbans_unmute", "SBans_ConCommand_UnMute", "<#userid|name>", LEVEL_MODERATOR );
 	ConCommand::Create( "sbans_unsilence", "SBans_ConCommand_UnSilence", "<#userid|name>", LEVEL_MODERATOR );
 
-	ConCommand::Create( "sbans_help", "SBans_ConCommand_Help" );
+	ConCommand::Create( "sbans_help", "SBans_ConCommand_Help", "Show our sourcebans++ commands", LEVEL_MODERATOR );
 }
 
 //------------------------------------------------------------------------------------------------------------------------//
@@ -349,38 +349,15 @@ void SBans_DoCommBan( int adminent, int targetent, int value, int time, string r
 
 void SBans_ConCommand_Help( CTerrorPlayer@ pPlayer, CASCommand@ pArgs )
 {
-	bool bHasSomethingToShow = false;
-
 	PrintConsoleHelpMessage( pPlayer, "======================================" );
-
-	// Uglyyy
-	if ( DisplayHelp( pPlayer, "sbans_ban" ) )
-		bHasSomethingToShow = true;
-
-	if ( DisplayHelp( pPlayer, "sbans_kick" ) )
-		bHasSomethingToShow = true;
-
-	if ( DisplayHelp( pPlayer, "sbans_gag" ) )
-		bHasSomethingToShow = true;
-
-	if ( DisplayHelp( pPlayer, "sbans_ungag" ) )
-		bHasSomethingToShow = true;
-
-	if ( DisplayHelp( pPlayer, "sbans_mute" ) )
-		bHasSomethingToShow = true;
-
-	if ( DisplayHelp( pPlayer, "sbans_unmute" ) )
-		bHasSomethingToShow = true;
-
-	if ( DisplayHelp( pPlayer, "sbans_silence" ) )
-		bHasSomethingToShow = true;
-
-	if ( DisplayHelp( pPlayer, "sbans_unsilence" ) )
-		bHasSomethingToShow = true;
-
-	if ( !bHasSomethingToShow )
-		PrintConsoleHelpMessage( pPlayer, "You don't have any {lime}permission{default} to use any of the commands." );
-
+	DisplayHelp( pPlayer, "sbans_ban" );
+	DisplayHelp( pPlayer, "sbans_kick" );
+	DisplayHelp( pPlayer, "sbans_gag" );
+	DisplayHelp( pPlayer, "sbans_ungag" );
+	DisplayHelp( pPlayer, "sbans_mute" );
+	DisplayHelp( pPlayer, "sbans_unmute" );
+	DisplayHelp( pPlayer, "sbans_silence" );
+	DisplayHelp( pPlayer, "sbans_unsilence" );
 	PrintConsoleHelpMessage( pPlayer, "======================================\n" );
 }
 
@@ -399,19 +376,15 @@ void PrintConsoleHelpMessage( CTerrorPlayer@ pPlayer, string strMsg )
 
 //------------------------------------------------------------------------------------------------------------------------//
 
-bool DisplayHelp( CTerrorPlayer@ pPlayer, string convar )
+void DisplayHelp( CTerrorPlayer@ pPlayer, string convar )
 {
 	if ( pPlayer is null )
 	{
 		PrintHelpMsg( null, convar, ConCommand::Help( convar ) );
-		return true;
+		return;
 	}
-
 	CBasePlayer@ pPlayerEnt = pPlayer.opCast();
-	bool bReturn = AdminSystem.PlayerHasAccessLevel( pPlayer, LEVEL_MODERATOR );
-	if ( bReturn )
-		PrintHelpMsg( pPlayerEnt, convar, ConCommand::Help( convar ) );
-	return bReturn;
+	PrintHelpMsg( pPlayerEnt, convar, ConCommand::Help( convar ) );
 }
 
 //------------------------------------------------------------------------------------------------------------------------//

@@ -45,15 +45,15 @@ void SBans_CheckBanStatus( NetObject@ pData )
 		strQueryStatement = "SELECT authid, type FROM " + GrabDatabasePrefix() + "_comms WHERE authid REGEXP '^STEAM_[0-9]:" + strSteamID32_Formated + "$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL";
 		// We are grabbing multiple rows, so let's make sure bMultipleResults is set to true!
 		if ( bPrintMsg )
-			SQL::SendQuery( hConnection, strQueryStatement, true, SBans_CheckBanStatus_Notify );
+			SQL::SendQuery( hConnection, strQueryStatement, SBans_CheckBanStatus_Notify );
 		else
-			SQL::SendQuery( hConnection, strQueryStatement, true, SBans_CheckBanStatus );
+			SQL::SendQuery( hConnection, strQueryStatement, SBans_CheckBanStatus );
 	}
 	else
 	{
 		strQueryStatement = "SELECT authid FROM " + GrabDatabasePrefix() + "_bans WHERE ((type = 0 AND authid REGEXP '^STEAM_[0-9]:" + strSteamID32_Formated+ "$') OR (type = 1 AND ip = '" + pPlayer.GrabIP() + "')) AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL";
 		// We are grabbing multiple rows, so let's make sure bMultipleResults is set to true!
-		SQL::SendQuery( hConnection, strQueryStatement, true, SBans_CheckBanStatus_ServerBan );
+		SQL::SendQuery( hConnection, strQueryStatement, SBans_CheckBanStatus_ServerBan );
 	}
 }
 
@@ -107,7 +107,6 @@ void SBans_CheckBanStatus_Notify( IMySQL@ hQuery )
 		if ( bGagged || bMuted )
 			SBans_SendTextAll( Translate::GrabTranslationFormat( GetLanguage(), "SB_Formated_MuteGag", { player_name, strType } ) );
 	}
-	SQL::FreeHandle( hQuery );
 }
 
 //------------------------------------------------------------------------------------------------------------------------//
@@ -141,7 +140,6 @@ void SBans_CheckBanStatus( IMySQL@ hQuery )
 		AdminSystem.Gag( pPlayer, bGagged ? 0 : 1, false, "Communication ban trough SourceBans++" );
 		AdminSystem.Mute( pPlayer, bMuted ? 0 : 1, false, "Communication ban trough SourceBans++" );
 	}
-	SQL::FreeHandle( hQuery );
 }
 
 //------------------------------------------------------------------------------------------------------------------------//
@@ -189,7 +187,6 @@ void SBans_CheckBanStatus_ServerBan( IMySQL@ hQuery )
 			}
 		}
 	}
-	SQL::FreeHandle( hQuery );
 }
 
 //------------------------------------------------------------------------------------------------------------------------//
@@ -486,4 +483,110 @@ void SBans_CreateBan( NetObject@ pData )
 
 	// Log the stuff
 	Log.ToLocation( "sourcebans", LOGTYPE_INFO, "CreateBan: " + strResult );
+}
+
+//------------------------------------------------------------------------------------------------------------------------//
+
+// Our network data info
+// NetObject structure:
+//	>> Int		| admin
+//	>> String	| steamid
+//	>> Int		| time
+//	>> String	| reason
+void SBans_CreateIDBan( NetObject@ pData )
+{
+	// Make sure we are connected to the database
+	if ( hConnection is null ) return;
+    // Make sure we aren't invalid
+    if ( pData is null ) return;
+
+	int iEntIndex;
+	string SteamID;
+	int time;
+	string reason;
+
+	// Admin index
+    if ( pData.HasIndexValue( 0 ) )
+        iEntIndex = pData.GetInt( 0 );
+
+	// Target Index
+    if ( pData.HasIndexValue( 1 ) )
+        SteamID = pData.GetString( 1 );
+
+	// Time
+    if ( pData.HasIndexValue( 2 ) )
+        time = pData.GetInt( 2 );
+
+	// Reason
+    if ( pData.HasIndexValue( 3 ) )
+        reason = Utils.EscapeCharacters( pData.GetString( 3 ) );
+
+	// Convert to pPlayer
+	CTerrorPlayer@ pAdmin = ToTerrorPlayer( iEntIndex );
+
+	// Admin information
+	string adminIP;
+	string adminSteamID;
+
+	// The server is the one calling the ban
+	if ( pAdmin is null )
+	{
+		// setup dummy adminAuth and adminIp for server
+		adminIP = "STEAM_ID_SERVER";
+		adminSteamID = Utils.GetServerIP();
+	}
+	else
+	{
+		adminIP = pAdmin.GrabIP();
+		adminSteamID = Utils.Steam64ToSteam32( pAdmin.GetSteamID64() );
+	}
+
+	string adminSteamID_Formated = Utils.StrReplace( adminSteamID, "STEAM_0:", "" );
+
+	// Target information
+	string Name;
+
+	Name = SteamID;
+
+	string strQueryStatement;
+	if ( GrabServerID() == -1 )
+	{
+		strQueryStatement = "INSERT INTO " + GrabDatabasePrefix() + "_bans (authid, name, created, ends, length, reason, aid, adminIp, sid, country) VALUES ";
+		strQueryStatement += "('" + SteamID + "', '" + Name + "', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + " + (time * 60) + ", " + (time * 60) + ", '" + reason + "', IFNULL((SELECT aid FROM " + GrabDatabasePrefix() + "_admins WHERE authid = '" + adminSteamID + "' OR authid REGEXP '^STEAM_[0-9]:" + adminSteamID_Formated + "$'),'0'), '" + adminIP + "', ";
+		strQueryStatement += "(SELECT sid FROM " + GrabDatabasePrefix() + "_servers WHERE ip = '" + Utils.GetServerIP() + "' AND port = '" + GetHostPort() + "' LIMIT 0,1), ' ')";
+	}
+	else
+	{
+		strQueryStatement = "INSERT INTO " + GrabDatabasePrefix() + "_bans (authid, name, created, ends, length, reason, aid, adminIp, sid, country) VALUES ";
+		strQueryStatement += "('" + SteamID + "', '" + Name + "', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + " + (time * 60) + ", " + (time * 60) + ", '" + reason + "', IFNULL((SELECT aid FROM " + GrabDatabasePrefix() + "_admins WHERE authid = '" + adminSteamID + "' OR authid REGEXP '^STEAM_[0-9]:" + adminSteamID_Formated + "$'),'0'), '" + adminIP + "', " + GrabServerID() + ", ' ')";
+	}
+
+	SQL::SendAndIgnoreQuery( hConnection, strQueryStatement );
+
+	///===========================================================
+	// Print Message
+	string strTime;
+	string strResult;
+	string strType = Translate::GrabTranslation( GetLanguage(), "SB_Banned" );
+	if ( time > 0 )
+	{
+		strTime = "{red}" + time + "{default}";
+		if ( time > 1 )
+			strTime += " Minutes";
+		else
+			strTime += " Minute";
+		strResult = Translate::GrabTranslationFormat( GetLanguage(), "SB_Formated_Msg", { Name, strType, strTime } );
+	}
+	else
+		strResult = Translate::GrabTranslationFormat( GetLanguage(), "SB_Formated_Msg_Perma", { Name, strType } );
+
+	// Reason
+	strResult += "\n" + Translate::GrabTranslationFormat( GetLanguage(), "SB_Formated_Msg_Reason", { reason } );
+
+	SBans_SendTextAll( strResult );
+	// END Print Message
+	///===========================================================
+
+	// Log the stuff
+	Log.ToLocation( "sourcebans", LOGTYPE_INFO, "CreateIDBan: " + strResult );
 }

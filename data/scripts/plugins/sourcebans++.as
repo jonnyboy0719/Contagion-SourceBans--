@@ -10,6 +10,7 @@
 #include "sbans/cvars.as"
 #include "sbans/net.as"
 #include "sbans/comm.as"
+#include "sbans/hooks.as"
 
 //------------------------------------------------------------------------------------------------------------------------//
 
@@ -56,9 +57,7 @@ void OnPluginInit()
 	CreateConvars();
 
 	// Hooks
-	Events::Player::OnPlayerConnected.Hook( @SBans_PlayerConnected );
-	Events::Player::OnPlayerInitSpawn.Hook( @SBans_OnPlayerInitSpawn );	// Called when we spawned for the first time
-	Events::Player::OnPlayerSpawn.Hook( @SBans_OnPlayerSpawn );
+	RegisterHooks();
 }
 
 //------------------------------------------------------------------------------------------------------------------------//
@@ -67,7 +66,11 @@ void OnSQLConnect( CSQLConnection@ pConnection )
 {
 	// If our connection was a success, then we can save the CSQLConnection object to a local variable.
 	// If not, stop here.
-	if ( pConnection.Failed() ) return;
+	if ( pConnection.Failed() )
+	{
+		Log.PrintToServerConsole( LOGTYPE_CRITICAL, "Failed to connect to the SourceBans++ Database!" );
+		return;
+	}
 
 	// Let's set a prefix, so we know it's from SourceBans
 	SQL::SetErrorPrefix( pConnection, "SQL Error" );
@@ -80,6 +83,8 @@ void OnSQLConnect( CSQLConnection@ pConnection )
 
 	// Apply our value
 	@hConnection = pConnection;
+
+	Log.PrintToServerConsole( LOGTYPE_INFO, "Connected to the SourceBans++ Database!" );
 }
 
 //------------------------------------------------------------------------------------------------------------------------//
@@ -129,55 +134,13 @@ string GrabServerWebsite() { return FileSystem::GrabString( hJsonData, "ServerIn
 
 //------------------------------------------------------------------------------------------------------------------------//
 
-HookReturnCode SBans_PlayerConnected( CTerrorPlayer@ pPlayer )
-{
-	// Ban check doesn't check for msg print check, only mute/gag does
-	NetData nData;
-	nData.Write( pPlayer.entindex() );
-	nData.Write( 1 );
-	Network::CallFunction( "SBans_CheckBanStatus", nData );
-	return HOOK_CONTINUE;
-}
-
-//------------------------------------------------------------------------------------------------------------------------//
-
-HookReturnCode SBans_OnPlayerInitSpawn( CTerrorPlayer@ pPlayer )
-{
-	NetData nData;
-	nData.Write( pPlayer.entindex() );
-	nData.Write( 0 );
-	nData.Write( 1 );
-	Network::CallFunction( "SBans_CheckBanStatus", nData );
-	return HOOK_CONTINUE;
-}
-
-//------------------------------------------------------------------------------------------------------------------------//
-
-HookReturnCode SBans_OnPlayerSpawn( CTerrorPlayer@ pPlayer )
-{
-	// Set this to false, since we are going to check it again.
-	// Since we may have ungagged or unmuted this player via the SBans page,
-	// or that the time expired.
-	AdminSystem.Mute( pPlayer, 1, false, "" );
-	AdminSystem.Gag( pPlayer, 1, false, "" );
-
-	NetData nData;
-	nData.Write( pPlayer.entindex() );
-	nData.Write( 0 );
-	nData.Write( 0 );	// We don't want to see any messages being printed
-	Network::CallFunction( "SBans_CheckBanStatus", nData );
-	return HOOK_CONTINUE;
-}
-
-//------------------------------------------------------------------------------------------------------------------------//
-
 string GetPluginTag() {	return Translate::GrabTranslation( GetLanguage(), "SB_Tag" ); }
 
 //------------------------------------------------------------------------------------------------------------------------//
 
 void SBans_SendTextAll( string strMsg )
 {
-	Chat.PrintToChat( all, GetPluginTag() + " " + strMsg );
+	Chat.PrintToChat( all, GetPluginTag() + " {default}" + strMsg );
 }
 
 //------------------------------------------------------------------------------------------------------------------------//
@@ -187,9 +150,9 @@ void SBans_SendTextToConsole( CTerrorPlayer@ pPlayer, string strMsg )
 	if ( pPlayer is null )
 	{
 		// If player is null, log it instead
-		Chat.PrintToConsole( GetPluginTag() + " " + strMsg );
+		Chat.PrintToConsole( GetPluginTag() + " {default}" + strMsg );
 		return;
 	}
 	//CBasePlayer@ pPlayerEnt = pPlayer.opCast();	// Convert to CBasePlayer
-	Chat.PrintToConsolePlayer( pPlayer, GetPluginTag() + " " + strMsg );
+	Chat.PrintToConsolePlayer( pPlayer, GetPluginTag() + " {default}" + strMsg );
 }

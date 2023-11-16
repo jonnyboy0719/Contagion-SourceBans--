@@ -89,7 +89,7 @@ void DoCommUnBan( CTerrorPlayer@ pAdmin, CTerrorPlayer@ pTarget, int iUnBanValue
 	string strQueryStatement;
 	strQueryStatement = "SELECT bid FROM " + GrabDatabasePrefix() + "_comms WHERE (type = " + iUnBanValue + " AND authid = '" + adminSteamID + "') AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL";
 
-	SQL::SendQuery( hConnection, strQueryStatement, true, DoCommUnBanQuery );
+	SQL::SendQuery( hConnection, strQueryStatement, DoCommUnBanQuery );
 }
 
 //------------------------------------------------------------------------------------------------------------------------//
@@ -111,5 +111,4 @@ void DoCommUnBanQuery( IMySQL@ hQuery )
 			SQL::SendAndIgnoreQuery( hConnection, strQueryStatement );
 		}
 	}
-	SQL::FreeHandle( hQuery );
 }
